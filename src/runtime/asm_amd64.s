@@ -275,6 +275,22 @@ TEXT runtime·gogo(SB), NOSPLIT, $16-8
 	MOVQ	0(DX), CX		// make sure g != nil
 	get_tls(CX)
 	MOVQ	DX, g(CX)
+	// 结合go_tls.h文件上面两行汇编指令可以展开如下:
+	// MOVL TLS, CX
+	// MOVQ DX, 0(CX)(TLS*1)
+	//
+	// 个人理解如下:
+	// 将TLS(Thread Local Storage)地址赋值到CX寄存器
+	// 将DX赋值到内存地址TLS*1+CX+0的位置
+	// DX = gobuf.g(BX)
+	//    = gobuf.g(buf+0(FP))     -- buf+0(FP) 的意思是 runtime·gogo函数的第一个传入参数即gp.sched, 因为调用字面量是 gogo(&gp.sched)
+	//    = gobuf.g(gp.sched)
+	//    = gp.sched.g
+	// 综上所述，这两条汇编指令是将sched.g给赋值到 内存地址TLS*1+CX+0
+	//
+	// todo(leewaiho): 存在的疑惑：
+	// 1. TLS又是什么呢?
+	// 2. CX和TLS不是一样的吗? 有什么区别呢?
 	MOVQ	gobuf_sp(BX), SP	// restore SP
 	MOVQ	gobuf_ret(BX), AX
 	MOVQ	gobuf_ctxt(BX), DX
