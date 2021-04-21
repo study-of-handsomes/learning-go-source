@@ -287,6 +287,7 @@ TEXT runtime·gogo(SB), NOSPLIT, $16-8
 	//    = gobuf.g(gp.sched)
 	//    = gp.sched.g
 	// 综上所述，这两条汇编指令是将sched.g给赋值到 内存地址TLS*1+CX+0
+	// 即 *(*uintptr)(unsafe.Pointer(uintptr(TLS*1+CX+0))) = gp.sched.g
 	//
 	// todo(leewaiho): 存在的疑惑：
 	// 1. TLS又是什么呢?
