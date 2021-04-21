@@ -2009,15 +2009,22 @@ func handoffp(_p_ *p) {
 	}
 	// no local work, check that there are no spinning/idle M's,
 	// otherwise our help is not required
+	// 自旋M数量为零、空闲P数量为零的临界情况下，尝试将自旋M的数量从0设置为1
+	// 设置成功则M持有着当前P自旋查找G
+	// 此处确保有一个M在自旋
 	if atomic.Load(&sched.nmspinning)+atomic.Load(&sched.npidle) == 0 && atomic.Cas(&sched.nmspinning, 0, 1) { // TODO: fast atomic
 		startm(_p_, true)
 		return
 	}
 	lock(&sched.lock)
+	//if needGC := sched.gcwaiting != 0; needGC {
 	if sched.gcwaiting != 0 {
 		_p_.status = _Pgcstop
+		// GC需要等待的P个数减一
 		sched.stopwait--
+		// 所有等待完毕时
 		if sched.stopwait == 0 {
+			// 唤醒
 			notewakeup(&sched.stopnote)
 		}
 		unlock(&sched.lock)
