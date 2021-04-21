@@ -3451,6 +3451,8 @@ func gfput(_p_ *p, gp *g) {
 // If local list is empty, grab a batch from global list.
 func gfget(_p_ *p) *g {
 retry:
+	// p本地的g空闲列表为空
+	// 全局的g空闲列表不为空(包含栈的g不为空或者不包含栈的g不为空)
 	if _p_.gFree.empty() && (!sched.gFree.stack.empty() || !sched.gFree.noStack.empty()) {
 		lock(&sched.gFree.lock)
 		// Move a batch of free Gs to the P.
@@ -3470,12 +3472,16 @@ retry:
 		unlock(&sched.gFree.lock)
 		goto retry
 	}
+	// p本地的g空闲列表不为空或者p本地的g空闲列表和全局的g空闲列表都为空
+	// 从p本地的g空闲列表取g
 	gp := _p_.gFree.pop()
 	if gp == nil {
 		return nil
 	}
 	_p_.gFree.n--
 	if gp.stack.lo == 0 {
+		// P本地的g空闲列表并不区分stack和nostack
+		// 但是获取出来后需要识别如果是nostack需要分配stack
 		// Stack was deallocated in gfput. Allocate a new one.
 		systemstack(func() {
 			gp.stack = stackalloc(_FixedStack)
