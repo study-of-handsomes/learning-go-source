@@ -4501,10 +4501,14 @@ func preemptall() bool {
 func preemptone(_p_ *p) bool {
 	mp := _p_.m.ptr()
 	if mp == nil || mp == getg().m {
+		// 抢占的P没有M 或者抢占P的M不是当前线程的M
 		return false
 	}
 	gp := mp.curg
+	// mp.curg == mp.g0????
+	// todo(leewaiho): mp.curg 不应该是用户code吗？为什么有可能是g0?
 	if gp == nil || gp == mp.g0 {
+		// 取出的g为空 或者 取出的g
 		return false
 	}
 
