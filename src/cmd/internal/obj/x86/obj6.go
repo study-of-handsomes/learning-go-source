@@ -74,6 +74,12 @@ func progedit(ctxt *obj.Link, p *obj.Prog, newprog obj.ProgAlloc) {
 	//
 	//         MOVQ TLS, AX
 	//
+	// 源于讨论: https://github.com/chai2010/advanced-go-programming-book/issues/536
+	//
+	// 基于线程本地存储的偏移量会被重写成off(reg)(TLS*1)的形式
+	// 语义上, 它就是off(reg), 但是 (TLS*1) 注解被用来标记这个是从加载的TLS基址开始寻址的。
+	// 这会触发一个重定向以至于链接器可以在它需要时调整对应的offset
+	//
 	// An offset from the thread-local storage base is written off(reg)(TLS*1).
 	// Semantically it is off(reg), but the (TLS*1) annotation marks this as
 	// indexing from the loaded TLS base. This emits a relocation so that
