@@ -3280,6 +3280,7 @@ func newproc1(fn *funcval, argp *uint8, narg int32, callergp *g, callerpc uintpt
 		_g_.m.throwing = -1 // do not dump full stacks
 		throw("go of nil func value")
 	}
+	// m.locks++ 防止当前m被抢占 todo(leewaiho): 是如何实现的?
 	acquirem() // disable preemption because it can be holding p in a local var
 
 	// 将size按8bit对齐，超出部分向上取整

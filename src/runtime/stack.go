@@ -893,6 +893,10 @@ func copystack(gp *g, newsize uintptr, sync bool) {
 	stackfree(old)
 }
 
+// 对x按二进制向上取整
+// input: 2047 output: 2048
+// input: 2048 output: 2048
+// input: 2049 output: 4096
 // round x up to a power of 2.
 func round2(x int32) int32 {
 	s := uint(0)
