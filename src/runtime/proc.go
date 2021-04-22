@@ -3281,6 +3281,11 @@ func newproc1(fn *funcval, argp *uint8, narg int32, callergp *g, callerpc uintpt
 		throw("go of nil func value")
 	}
 	acquirem() // disable preemption because it can be holding p in a local var
+
+	// 将size按8bit对齐，超出部分向上取整
+	// 假设size == 2
+	// 2 + 7 = 9
+	// 9 &^ 7 => 0000 1001 & ~(0000 0111) => 0000 1001 & 1111 1000 => 0000 1000 => 8
 	siz := narg
 	siz = (siz + 7) &^ 7
 
