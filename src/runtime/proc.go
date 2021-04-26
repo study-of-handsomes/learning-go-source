@@ -2065,14 +2065,20 @@ func wakep() {
 
 // Stops execution of the current m that is locked to a g until the g is runnable again.
 // Returns with acquired P.
+// 在schedule时会被调用
 func stoplockedm() {
 	_g_ := getg()
 
 	if _g_.m.lockedg == 0 || _g_.m.lockedg.ptr().lockedm.ptr() != _g_.m {
 		throw("stoplockedm: inconsistent locking")
 	}
+
+	// 确认数据一致性
+	// m.lockedg不为空且g的.m是当前m
+
 	if _g_.m.p != 0 {
 		// Schedule another M to run this p.
+		// 当前M(lockedm)持有P资源则释放
 		_p_ := releasep()
 		handoffp(_p_)
 	}
@@ -3248,7 +3254,9 @@ func malg(stacksize int32) *g {
 		systemstack(func() {
 			newg.stack = stackalloc(uint32(stacksize))
 		})
+		// go的栈canary在
 		newg.stackguard0 = newg.stack.lo + _StackGuard
+		// c的栈canary在 最高位
 		newg.stackguard1 = ^uintptr(0)
 	}
 	return newg
@@ -4176,7 +4184,14 @@ func releasep() *p {
 	if _g_.m.p == 0 || _g_.m.mcache == nil {
 		throw("releasep: invalid arg")
 	}
+
+	// 获取当前线程的P (OS Thread => G => M => P)
 	_p_ := _g_.m.p.ptr()
+
+	// ensure relationship:
+	// 1. P.M == G.M
+	// 2. P.mcache == G.M.mcache
+	// 3. P.status == running
 	if _p_.m.ptr() != _g_.m || _p_.mcache != _g_.m.mcache || _p_.status != _Prunning {
 		print("releasep: m=", _g_.m, " m->p=", _g_.m.p.ptr(), " p->m=", hex(_p_.m), " m->mcache=", _g_.m.mcache, " p->mcache=", _p_.mcache, " p->status=", _p_.status, "\n")
 		throw("releasep: invalid p state")
@@ -4184,10 +4199,11 @@ func releasep() *p {
 	if trace.enabled {
 		traceProcStop(_g_.m.p.ptr())
 	}
-	_g_.m.p = 0
-	_g_.m.mcache = nil
-	_p_.m = 0
-	_p_.status = _Pidle
+
+	_g_.m.p = 0         // 从m上解绑p
+	_g_.m.mcache = nil  // 从m上解绑p的mcache
+	_p_.m = 0           // 从p上解绑m
+	_p_.status = _Pidle // p.status 设置为 idle
 	return _p_
 }
 
